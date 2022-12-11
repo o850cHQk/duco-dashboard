@@ -2,6 +2,7 @@
     /*
         Login API:
     */
+    header('Content-Type: application/json');
     require('../config.php');
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         // check if user variable is set
@@ -18,9 +19,15 @@
         require('../db.php');
         // check if account exists
         $userName = $mysql->real_escape_string($_GET['user']);
-        $sql_query = 'SELECT * FROM users WHERE username = "' . $userName . '" LIMIT 1';
+        $sql_query = 'SELECT * FROM users WHERE userName = "' . $userName . '" LIMIT 1';
         $result = $mysql->query($sql_query);
         if (!$result) {
+            // sql error
+            http_response_code(400);
+            die(json_encode(array("message"=>"Unable to get your details, try logging in again.")));
+        }
+        $rows = $result->num_rows;
+        if ($rows == 0) { 
             // user does not exist - lets see if it exists on duino coin network
             $url = 'https://server.duinocoin.com/users/' . $userName;
             $ch = curl_init();
@@ -33,8 +40,8 @@
                 die(json_encode(array("message"=>"We can not connect to the Duino Coin Servers at the moment, please try connecting later")));
             }
             curl_close($ch);
-            $duinoServer = json_decode($output);
-            if ($duinoServer['success'] == false) {
+            $duinoServer = json_decode($output, true);
+            if (!isset($duinoServer['result'])) {
                 http_response_code(400);
                 die(json_encode(array("message"=>"This account does not exist")));
             }

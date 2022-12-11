@@ -30,7 +30,7 @@
             'overview'=>array(),
             'message'=>''
         );
-        $sql_query = 'SELECT * FROM overview WHERE userID = ' . $_SESSION['id'] . ' LIMIT 20';
+        $sql_query = 'SELECT * FROM (SELECT * FROM overview WHERE userID = ' . $_SESSION['id'] . ' ORDER BY overviewID DESC LIMIT 20) AS overviews ORDER BY overviewID ASC';
         $result = $mysql->query($sql_query);
         $rows = $result->num_rows;
         if ($rows == 0) {

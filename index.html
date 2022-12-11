@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <!-- Basic Page Needs
+    –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <meta charset="utf-8">
+    <title>Duinocoin Dashboard</title>
+    <meta name="description" content="A simple Duinocoin Dashboard">
+    <meta name="author" content="Vargink">
+
+    <!-- Mobile Specific Metas
+    –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Web App
+    –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <script>
+        if('serviceWorker' in navigator){
+          navigator.serviceWorker.register('/service-worker.js');
+        } else {
+          console.log("Service worker is not supported");
+        }
+    </script>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="images/duco192.png"/>
+    <meta name="theme-color" content="#ff4112">
+    <!-- FONT
+    –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <link href="css/fontawesome-all.min.css" rel="stylesheet">
+
+    <!-- CSS
+    –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <link rel="stylesheet" href="css/normalize.css">
+    <link rel="stylesheet" href="css/skeleton.css">
+
+    <!-- Javascript
+    –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <script language="JavaScript" type="text/javascript" src="js/chart.js"></script>
+    <script language="JavaScript" type="text/javascript" src="js/jquery-3.6.1.min.js"></script>
+
+    <!-- Favicon
+    –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <link rel="icon" type="image/png" href="images/favicon.png">
+
+</head>
+<body>
+
+    <!-- Login Element
+    –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <div class="section ui-msg" style="display: none;">
+        <div class="container">
+            <div class="row">
+                <div class="eleven columns ui-text">
+                    Ui Message
+                </div>
+                <div class="one column">
+                    <div class="ui-button" id="uiHide">
+                        <i class="fa-solid fa-xmark"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Element
+    –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <div class="container login">
+        <div class="row">
+            <div class="one-half column" style="margin-top: 25%">
+                <label for="userName">User Name</label>
+                <input class="u-full-width" type="username" id="userName">
+            </div>
+        </div>
+        <input class="button-primary ui-button" type="submit" value="Submit" id="login">
+    </div>
+
+    <!-- Main Dashboard
+    –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <div class="container dashboard" style="display: none;">
+        <div class="row">
+            <div class="one-third column dashName">
+                <label>Account Name</label>
+            </div>
+        </div>
+        <div class="row">
+            <canvas id="balanceChart"></canvas>
+            <div class="dashBalance"><label>Balance: 12345</label></div>
+        </div>
+        <div class="row">
+            <div class="one-half column">
+                <canvas id="dashMinersChart"></canvas>
+                <div class="dashMiners"><label>Miners: 1234</label></div> 
+            </div>
+            <div class="one-half column">
+                <canvas id="dashHashrateChart"></canvas>
+                <div class="dashHashrate"><label>Hashrate: 1234</label></div> 
+            </div>
+        </div>
+    </div>
+    <!-- Javascript 
+    –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <script>
+        chartBalanceChart = new Chart(document.getElementById("balanceChart"), {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{ 
+                    data: [],
+                    label: "Balance",
+                    borderColor: "#3e95cd",
+                    fill: false
+                }]
+            },
+            options: {
+                title: {
+                display: true,
+                text: 'Balance: '
+                }
+            }
+        });
+        chartMinersChart = new Chart(document.getElementById("dashMinersChart"), {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{ 
+                    data: [],
+                    label: "Miners",
+                    borderColor: "#3e95cd",
+                    fill: false
+                }]
+            },
+            options: {
+                title: {
+                display: true,
+                text: 'Miners: '
+                }
+            }
+        });
+        chartHashrateChart = new Chart(document.getElementById("dashHashrateChart"), {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{ 
+                    data: [],
+                    label: "Total Hashrate",
+                    borderColor: "#3e95cd",
+                    fill: false
+                }]
+            },
+            options: {
+                title: {
+                display: true,
+                text: 'Total Hashrate: '
+                }
+            }
+        });
+        timerUpdate = null;
+        function message(message) {
+            // show messages up the top
+            $('.ui-text').text(message);
+            $('.ui-msg').show();
+        }
+        function updateDashboard() {
+            // okay pull the user data and leta make shit happen
+            $.get( "api/v1/user/", function( data ) {
+                // okay lets put this data into the dashboard.
+                $('.dashName').html('<label>' + data.name +'</label>');
+                latestIndex = data.overview.length -1;
+                $('.dashBalance').html('<label>Balance: ' + data.overview[latestIndex].balance +'</label>');
+                $('.dashHashrate').html('<label>Hashrate:' + data.overview[latestIndex].hashrateTotal +'</label>');
+                $('.dashMiners').html('<label>Miners:' + data.overview[latestIndex].minersTotal +'</label>');
+                // build graphs
+                chartBalanceChart.data.labels = data.overview.map(row => new Date(row.checkedTime * 1000).toLocaleTimeString());
+                chartBalanceChart.data.datasets[0].data = data.overview.map(row => row.balance);
+                chartBalanceChart.update();
+                chartMinersChart.data.labels = data.overview.map(row => new Date(row.checkedTime * 1000).toLocaleTimeString());
+                chartMinersChart.data.datasets[0].data = data.overview.map(row => row.minersTotal);
+                chartMinersChart.update();
+                chartHashrateChart.data.labels = data.overview.map(row => new Date(row.checkedTime * 1000).toLocaleTimeString());
+                chartHashrateChart.data.datasets[0].data = data.overview.map(row => row.hashrateTotal);
+                chartHashrateChart.update();
+            }).fail(function(data, textStatus, xhr) {
+
+            });
+        }
+        function loadDashboard() {
+            // run this function when you have logged in.
+            $('.login').hide();
+            updateDashboard();
+            $('.dashboard').show();
+            timerUpdate = setInterval(updateDashboard, 60000);
+        }
+        function login(userName) {
+            $.get( "api/v1/login/?user=" + userName, function( data ) {
+                //successfull login load the dashboard
+                loadDashboard();
+                $('#login').prop("disabled",false);
+            }).fail(function(data, textStatus, xhr) {
+                // send the message back to main.
+                message(data.message);
+                $('#login').prop("disabled",false);
+            });
+        }
+        $(document).on('click', '.ui-button', function() {
+            switch (this.id) {
+            case 'login':
+                // button has already been pressed pressed
+                if ($(this).is(':disabled')) {
+                    return;
+                }
+                $(this).prop("disabled",true);
+                // login button pressed
+                var username = $("input#userName").val();
+                if (username == "") {
+                    message('Please put in your Duinocoin Username');
+                    $(this).prop("disabled",false);
+                    return;
+                }
+                login(username);
+                break;
+            case 'uiHide': 
+                $('.ui-msg').hide();
+                break;
+            }
+        });
+        $(document).ready(function() {
+            console.log('page loaded');
+            $.get( "api/v1/user/", function( data ) {
+                // already logged in so load dashboard
+                loadDashboard();
+            }).fail(function(data, textStatus, xhr) {
+                $.get( "api/v1/", function( data ) {
+                    //check if this is single user mode
+                    if (data.userName != false) {
+                        // Send username as login
+                        login(data.userName);
+                    }
+                });
+            });
+        });
+    </script>
+<!-- End Document
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+</body>
+</html>

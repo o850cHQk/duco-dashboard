@@ -4,9 +4,7 @@
     */
     header('Content-Type: application/json');
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-        session_start();
-        session_unset();
-        session_destroy();
+        setcookie( "id", "", 1 );
         http_response_code(200);
         die(json_encode(array("message"=>"You have logged out successfully")));
     }

@@ -15,7 +15,6 @@
             http_response_code(400);
             die(json_encode(array("message"=>"This server is set to single user mode, you can not log in with other duino coin wallets")));
         }
-        session_start();
         require('../db.php');
         // check if account exists
         $userName = $mysql->real_escape_string($_GET['user']);
@@ -57,8 +56,7 @@
                 'name'=>$userName,
                 'message'=>'Logged in successfully!'
             );
-            $_SESSION['id'] = $json['id'];
-            $_SESSION['name'] = $json['name'];
+            setcookie( "id", $json['id'], strtotime( '+30 days' ), "/" );
             http_response_code(200);
             die(json_encode($json));
         }
@@ -68,8 +66,7 @@
             'name'=>$db_user['userName'],
             'message'=>'Logged in successfully!'
         );
-        $_SESSION['id'] = $json['id'];
-        $_SESSION['name'] = $json['name'];
+        setcookie( "id", $json['id'], strtotime( '+30 days' ), "/" );
         http_response_code(200);
         die(json_encode($json));
     }

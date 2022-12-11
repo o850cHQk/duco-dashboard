@@ -2,6 +2,6 @@
 echo Duco Worker Starting
 while true
 do
-    php ./runner/runner.php
+    curl https://duco.tcmeta.net/api/v1/runner/
     sleep 1
 done

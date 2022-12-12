@@ -46,7 +46,7 @@
 </head>
 <body>
 
-    <!-- Login Element
+    <!-- Messages Element
     –––––––––––––––––––––––––––––––––––––––––––––––––– -->
     <div class="section ui-msg" style="display: none;">
         <div class="container">
@@ -77,7 +77,12 @@
 
     <!-- Main Dashboard
     –––––––––––––––––––––––––––––––––––––––––––––––––– -->
-    <div class="container dashboard" style="display: none;">
+    <div class="container dashboard" style="display: none; margin-top: 10px">
+        <div class="row">
+            <button class="ui-button" id="set30m">30 Minutes</button>
+            <button class="ui-button" id="set1h">1 Hour</button>
+            <button class="ui-button" id="set1d">1 Day</button>
+        </div>
         <div class="row">
             <div class="one-third column dashName">
                 <label>Account Name</label>
@@ -85,7 +90,11 @@
         </div>
         <div class="row">
             <canvas id="balanceChart"></canvas>
-            <div class="dashBalance"><label>Balance: 12345</label></div>
+        </div>
+        <div class="row">
+            <div class="one-third column dashBalance"><label>Balance: </label></div>
+            <div class="one-third column dashBalanceDiff"><label>Difference: </label></div>
+            <div class="one-third column dashStake"><label>Stake: </label></div>
         </div>
         <div class="row">
             <div class="one-half column">
@@ -156,18 +165,54 @@
             }
         });
         timerUpdate = null;
+        lastUpdate = 0;
+        timeframe = null;
+        function setCookie(name, value) {
+            let date = new Date();
+            date.setTime(date.getTime() + (30 * 24 * 60 * 60 * 1000));
+            const expires = "expires=" + date.toUTCString();
+            document.cookie = name + "=" + value + "; " + expires + "; path=/";
+        }
+        function delCookie(name) {
+            document.cookie = name + "=" + 1 + "; " + 1 + "; path=/";
+        }
+        function getCookie(cookieName) {
+            var name = cookieName + "=";
+            var ca = document.cookie.split(';');
+            for (var i = 0; i < ca.length; i++) {
+                var c = ca[i].trim();
+                if ((c.indexOf(name)) == 0) {
+                    return c.substr(name.length);
+                }
+            }
+            return null;
+        }
         function message(message) {
             // show messages up the top
             $('.ui-text').text(message);
             $('.ui-msg').show();
         }
+        function checkForUpdate() {
+            $.get( "api/v1/user/", function( data ) {
+                // set the new update time
+                if (data.lastChecked > lastUpdate) {
+                    lastUpdate = data.lastChecked;
+                    updateDashboard();
+                }
+            }).fail(function(data, textStatus, xhr) {
+
+            });
+        }
         function updateDashboard() {
             // okay pull the user data and leta make shit happen
-            $.get( "api/v1/user/", function( data ) {
-                // okay lets put this data into the dashboard.
+            const startTime = Math.floor(Date.now() / 1000) - timeframe;
+            $.get( "api/v1/user/?startDate=" + startTime, function( data ) {
+                // set the new update time
                 $('.dashName').html('<label>' + data.name +'</label>');
                 latestIndex = data.overview.length -1;
                 $('.dashBalance').html('<label>Balance: ' + data.overview[latestIndex].balance +'</label>');
+                $('.dashStake').html('<label>Stake: ' + data.overview[latestIndex].stakeAmount +'</label>');
+                $('.dashBalanceDiff').html('<label>Differece: ' + (data.overview[latestIndex].balance - data.overview[0].balance) +'</label>');
                 $('.dashHashrate').html('<label>Hashrate:' + data.overview[latestIndex].hashrateTotal +'</label>');
                 $('.dashMiners').html('<label>Miners:' + data.overview[latestIndex].minersTotal +'</label>');
                 // build graphs
@@ -185,11 +230,10 @@
             });
         }
         function loadDashboard() {
-            // run this function when you have logged in.
             $('.login').hide();
             updateDashboard();
             $('.dashboard').show();
-            timerUpdate = setInterval(updateDashboard, 60000);
+            timerUpdate = setInterval(checkForUpdate, 10000);
         }
         function login(userName) {
             $.get( "api/v1/login/?user=" + userName, function( data ) {
@@ -222,10 +266,31 @@
             case 'uiHide': 
                 $('.ui-msg').hide();
                 break;
+            case 'set30m':
+                timeframe = 1800;
+                setCookie('timeframe', 1800);
+                updateDashboard();
+                break;
+            case 'set1h':
+                timeframe = 3600;
+                setCookie('timeframe', 3600);
+                updateDashboard();
+                break;
+            case 'set1d':
+                timeframe = 86400;
+                setCookie('timeframe', 86400);
+                updateDashboard();
+                break;
             }
         });
         $(document).ready(function() {
             console.log('page loaded');
+            // load the timer offset cookie
+            timeframe = getCookie('timeframe');
+            if (timeframe === null) {
+                setCookie('timeframe', 1800);
+                timeframe = 1800;
+            }
             $.get( "api/v1/user/", function( data ) {
                 // already logged in so load dashboard
                 loadDashboard();

@@ -10,7 +10,6 @@
             http_response_code(401);
             die(json_encode(array("message"=>"You are not logged in")));
         }
-        // Okay get the last 20 results
         require('../config.php');
         require('../db.php');
         // get the last time it was checked
@@ -30,16 +29,25 @@
             'overview'=>array(),
             'message'=>''
         );
-        $sql_query = 'SELECT * FROM (SELECT * FROM overview WHERE userID = ' . $userID . ' ORDER BY overviewID DESC LIMIT 20) AS overviews ORDER BY overviewID ASC';
-        $result = $mysql->query($sql_query);
-        $rows = $result->num_rows;
-        if ($rows == 0) {
-            http_response_code(400);
-            die(json_encode(array("message"=>"The dashboard has not retreived any information about your wallet yet, please give it a minute.")));
-        }
-        if ($rows > 1) {
-            while($row = $result->fetch_assoc()) {
-                array_push($json['overview'], $row);
+        // get a start date and check for end
+        if (isset($_GET['startDate'])) {
+            $startDate =  $mysql->real_escape_string($_GET['startDate']);
+            $endDate = '';
+            if (isset($_GET['endDate'])) {
+                $endDate =  $mysql->real_escape_string($_GET['startDate']);
+            } else {
+                $endDate =  $_SERVER['REQUEST_TIME'];
+            }
+            $sql_query = 'SELECT * FROM overview WHERE userID = ' . $userID . ' AND checkedTime BETWEEN ' . $startDate . ' AND ' . $endDate . ' ORDER BY checkedTime ASC';
+            $result = $mysql->query($sql_query);
+            $rows = $result->num_rows;
+            if ($rows == 0) {
+                $json['message'] = "The dashboard has not retreived any information in this date range. If you have just signed in it will take a minute for data to appear on your dashboard.";
+            }
+            if ($rows > 1) {
+                while($row = $result->fetch_assoc()) {
+                    array_push($json['overview'], $row);
+                }
             }
         }
         http_response_code(200);

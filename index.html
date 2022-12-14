@@ -79,31 +79,53 @@
     –––––––––––––––––––––––––––––––––––––––––––––––––– -->
     <div class="container dashboard" style="display: none; margin-top: 10px">
         <div class="row">
-            <button class="ui-button" id="set30m">30 Minutes</button>
-            <button class="ui-button" id="set1h">1 Hour</button>
-            <button class="ui-button" id="set1d">1 Day</button>
-        </div>
-        <div class="row">
-            <div class="one-third column dashName">
-                <label>Account Name</label>
+            <div class="one column ui-button" id="menuToggle">
+                <i class="fa-solid fa-bars" style="font-size: 1.5em;"></i>
+            </div>
+            <div class="eleven columns">
+                Duinocoin Dashboard
             </div>
         </div>
-        <div class="row">
-            <canvas id="balanceChart"></canvas>
-        </div>
-        <div class="row">
-            <div class="one-third column dashBalance"><label>Balance: </label></div>
-            <div class="one-third column dashBalanceDiff"><label>Difference: </label></div>
-            <div class="one-third column dashStake"><label>Stake: </label></div>
-        </div>
-        <div class="row">
-            <div class="one-half column">
-                <canvas id="dashMinersChart"></canvas>
-                <div class="dashMiners"><label>Miners: 1234</label></div> 
+        <div class="row dashboardLoading" style="display: none;">
+            <div class="one columb"></div>
+            <div class="four columb">
+                There is no data available for your account, please wait till we start to collect your data.
             </div>
-            <div class="one-half column">
-                <canvas id="dashHashrateChart"></canvas>
-                <div class="dashHashrate"><label>Hashrate: 1234</label></div> 
+        </div>
+        <div class="menu" style="display: none; ">
+            <div class="row"><label>Dashboard</label></div>
+            <div class="row">
+                <button class="ui-button" id="set30m">30 Minutes</button>
+                <button class="ui-button" id="set1h">1 Hour</button>
+                <button class="ui-button" id="set1d">1 Day</button>
+            </div>
+            <div class="two column ui-button" id="logout">
+                <i class="fa-solid fa-right-from-bracket" style="font-size: 1.5em;"></i> Logout
+            </div>
+        </div>
+        <div class="dashboardMain">
+            <div class="row">
+                <div class="one-third column dashName">
+                    <label>Account Name</label>
+                </div>
+            </div>
+            <div class="row">
+                <canvas id="balanceChart"></canvas>
+            </div>
+            <div class="row">
+                <div class="one-third column dashBalance"><label>Balance: </label></div>
+                <div class="one-third column dashBalanceDiff"><label>Difference: </label></div>
+                <div class="one-third column dashStake"><label>Stake: </label></div>
+            </div>
+            <div class="row">
+                <div class="one-half column">
+                    <canvas id="dashMinersChart"></canvas>
+                    <div class="dashMiners"><label>Miners: 1234</label></div> 
+                </div>
+                <div class="one-half column">
+                    <canvas id="dashHashrateChart"></canvas>
+                    <div class="dashHashrate"><label>Hashrate: 1234</label></div> 
+                </div>
             </div>
         </div>
     </div>
@@ -174,7 +196,10 @@
             document.cookie = name + "=" + value + "; " + expires + "; path=/";
         }
         function delCookie(name) {
-            document.cookie = name + "=" + 1 + "; " + 1 + "; path=/";
+            let date = new Date();
+            date.setTime(date.getTime());
+            const expires = "expires=" + date.toUTCString();
+            document.cookie = name + "=" + -1 + "; " + expires + "; path=/";
         }
         function getCookie(cookieName) {
             var name = cookieName + "=";
@@ -203,6 +228,7 @@
 
             });
         }
+        newUser = true;
         function updateDashboard() {
             // okay pull the user data and leta make shit happen
             const startTime = Math.floor(Date.now() / 1000) - timeframe;
@@ -210,12 +236,34 @@
                 // set the new update time
                 $('.dashName').html('<label>' + data.name +'</label>');
                 latestIndex = data.overview.length -1;
+                if (latestIndex == -1 && newUser) {
+                    // no indexes... should maybe hide the menu put a message up
+                    $('.dashboardLoading').show();
+                    return;
+                }
+                if (newUser) {
+                    $('.dashboardLoading').hide();
+                    newUser = false;
+                }
                 $('.dashBalance').html('<label>Balance: ' + data.overview[latestIndex].balance +'</label>');
                 $('.dashStake').html('<label>Stake: ' + data.overview[latestIndex].stakeAmount +'</label>');
                 $('.dashBalanceDiff').html('<label>Differece: ' + (data.overview[latestIndex].balance - data.overview[0].balance) +'</label>');
                 $('.dashHashrate').html('<label>Hashrate:' + data.overview[latestIndex].hashrateTotal +'</label>');
                 $('.dashMiners').html('<label>Miners:' + data.overview[latestIndex].minersTotal +'</label>');
                 // build graphs
+                if (timeframe == 86400) {
+                    // set the datasets to every hour
+                    newData = [];
+                    for (let i = 0; i < data.overview.length; i++) {
+                        if (!(data.overview[i].checkedTime % 1800)) {
+                            newData.push(data.overview[i]);
+                        }
+                    }
+                    if (data.overview[latestIndex].checkedTime != newData[newData.length - 1].checkedTime) {
+                        newData.push(data.overview[latestIndex]);
+                    }
+                    data.overview = newData;
+                }
                 chartBalanceChart.data.labels = data.overview.map(row => new Date(row.checkedTime * 1000).toLocaleTimeString());
                 chartBalanceChart.data.datasets[0].data = data.overview.map(row => row.balance);
                 chartBalanceChart.update();
@@ -234,6 +282,19 @@
             updateDashboard();
             $('.dashboard').show();
             timerUpdate = setInterval(checkForUpdate, 10000);
+        }
+        function loadLogin() {
+            $('.login').show();
+            $('.dashboard').hide();
+        }
+        function menuToggle() {
+            if ($('.menu').css('display') == 'none') {
+                $('.menu').show();
+                $('.dashboardMain').hide();
+            } else {
+                $('.menu').hide();
+                $('.dashboardMain').show();
+            }
         }
         function login(userName) {
             $.get( "api/v1/login/?user=" + userName, function( data ) {
@@ -263,29 +324,44 @@
                 }
                 login(username);
                 break;
+            case 'logout':
+                $.get( "api/v1/logout/", function( data ) {
+                //successfull login load the dashboard
+                    clearInterval(timerUpdate);
+                    menuToggle();
+                    loadLogin();
+                    init();
+                    newUser = true;
+                    message('You have logged out. See ya!');
+                })
+                break;
             case 'uiHide': 
                 $('.ui-msg').hide();
+                break;
+            case 'menuToggle':
+                menuToggle();
                 break;
             case 'set30m':
                 timeframe = 1800;
                 setCookie('timeframe', 1800);
                 updateDashboard();
+                menuToggle();
                 break;
             case 'set1h':
                 timeframe = 3600;
                 setCookie('timeframe', 3600);
                 updateDashboard();
+                menuToggle();
                 break;
             case 'set1d':
                 timeframe = 86400;
                 setCookie('timeframe', 86400);
                 updateDashboard();
+                menuToggle();
                 break;
             }
         });
-        $(document).ready(function() {
-            console.log('page loaded');
-            // load the timer offset cookie
+        function init() {
             timeframe = getCookie('timeframe');
             if (timeframe === null) {
                 setCookie('timeframe', 1800);
@@ -303,6 +379,11 @@
                     }
                 });
             });
+        }
+        $(document).ready(function() {
+            console.log('page loaded');
+            // load the timer offset cookie
+            init();
         });
     </script>
 <!-- End Document

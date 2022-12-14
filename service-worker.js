@@ -4,7 +4,6 @@ const CACHE_NAME  = 'duco-dashboard';
 /* Add relative URL of all the static content you want to store in
  * cache storage (this will help us use our app offline)*/
 let resourcesToCache = [
-    "/index.html",
     "/css/fontawesome-all.min.css",
     "/css/normalize.css",
     "/css/skeleton.css",

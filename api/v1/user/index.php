@@ -38,7 +38,12 @@
             } else {
                 $endDate =  $_SERVER['REQUEST_TIME'];
             }
-            $sql_query = 'SELECT * FROM overview WHERE userID = ' . $userID . ' AND checkedTime BETWEEN ' . $startDate . ' AND ' . $endDate . ' ORDER BY checkedTime ASC';
+            $sql_query = 'SELECT * FROM overview WHERE userID = ' . $userID . ' AND checkedTime BETWEEN ' . $startDate . ' AND ' . $endDate;
+            if (isset($_GET['interval'])) {
+                $interval =  $_GET['interval'];
+                $sql_query .= ' AND ( checkedTime % ' . $interval . ' = 0)';
+            }
+            $sql_query .= ' ORDER BY checkedTime ASC';
             $result = $mysql->query($sql_query);
             $rows = $result->num_rows;
             if ($rows == 0) {

@@ -98,6 +98,7 @@
                 <button class="ui-button" id="set30m">30 Minutes</button>
                 <button class="ui-button" id="set1h">1 Hour</button>
                 <button class="ui-button" id="set1d">1 Day</button>
+                <button class="ui-button" id="set7d">1 Week</button>
             </div>
             <div class="two column ui-button" id="logout">
                 <i class="fa-solid fa-right-from-bracket" style="font-size: 1.5em;"></i> Logout
@@ -232,7 +233,14 @@
         function updateDashboard() {
             // okay pull the user data and leta make shit happen
             const startTime = Math.floor(Date.now() / 1000) - timeframe;
-            $.get( "api/v1/user/?startDate=" + startTime, function( data ) {
+            getURL = "api/v1/user/?startDate=" + startTime;
+            if (timeframe == 86400) { // one day
+                getURL += '&interval=1800'; // every 15 minutes
+            }
+            if (timeframe == 604800) { // one week
+                getURL += '&interval=43200'; // every 12 hours
+            }
+            $.get( getURL, function( data ) {
                 // set the new update time
                 $('.dashName').html('<label>' + data.name +'</label>');
                 latestIndex = data.overview.length -1;
@@ -251,19 +259,6 @@
                 $('.dashHashrate').html('<label>Hashrate:' + data.overview[latestIndex].hashrateTotal +'</label>');
                 $('.dashMiners').html('<label>Miners:' + data.overview[latestIndex].minersTotal +'</label>');
                 // build graphs
-                if (timeframe == 86400) {
-                    // set the datasets to every hour
-                    newData = [];
-                    for (let i = 0; i < data.overview.length; i++) {
-                        if (!(data.overview[i].checkedTime % 1800)) {
-                            newData.push(data.overview[i]);
-                        }
-                    }
-                    if (data.overview[latestIndex].checkedTime != newData[newData.length - 1].checkedTime) {
-                        newData.push(data.overview[latestIndex]);
-                    }
-                    data.overview = newData;
-                }
                 chartBalanceChart.data.labels = data.overview.map(row => new Date(row.checkedTime * 1000).toLocaleTimeString());
                 chartBalanceChart.data.datasets[0].data = data.overview.map(row => row.balance);
                 chartBalanceChart.update();
@@ -356,6 +351,12 @@
             case 'set1d':
                 timeframe = 86400;
                 setCookie('timeframe', 86400);
+                updateDashboard();
+                menuToggle();
+                break;
+            case 'set7d':
+                timeframe = 604800;
+                setCookie('timeframe', 604800);
                 updateDashboard();
                 menuToggle();
                 break;

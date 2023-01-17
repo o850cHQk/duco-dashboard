@@ -1,3 +1,5 @@
+# Repo has been archived. revox has said this could get you/me banned (dont think it will but anyway) A new project is being done [here](https://github.com/o850cHQk/duco-dash) that is a simple self hosted version of this dashboad
+
 # Duino Coin Dashboard
 This is a Duino Coin Dashboard alternative
 
